@@ -768,7 +768,7 @@ div[data-baseweb="radio"][aria-checked="true"] div {
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# Clean Top Brand Header (Replaces Sidebar & Class 7 Search)
+# Clean Top Brand Header
 # ---------------------------------------------------------
 st.markdown("""
 <div class="brand-top-bar">
@@ -779,9 +779,6 @@ st.markdown("""
             <p>Intelligent Agricultural Vision Diagnostic Platform</p>
         </div>
     </div>
-    # <div class="brand-badge">
-    #     <span>⚡</span> Powered by Groq Multimodal Vision
-    # </div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -821,74 +818,6 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# ---------------------------------------------------------
-# Statistics Cards Row
-# ---------------------------------------------------------
-stats = st.session_state.stats
-# st.markdown(f"""
-<div class="metric-grid">
-    <div class="metric-card">
-        <div class="metric-left">
-            <div class="metric-icon-wrap icon-green">🌱</div>
-            <div>
-                <div class="metric-value">{stats['analyzed']}</div>
-                <div class="metric-label">Images Analyzed</div>
-            </div>
-        </div>
-        <div class="mini-bars">
-            <div class="bar-green" style="height: 40%;"></div>
-            <div class="bar-green" style="height: 65%;"></div>
-            <div class="bar-green" style="height: 50%;"></div>
-            <div class="bar-green high" style="height: 90%;"></div>
-        </div>
-    </div>
-    <div class="metric-card">
-        <div class="metric-left">
-            <div class="metric-icon-wrap icon-coral">🍅</div>
-            <div>
-                <div class="metric-value">{stats['tomato_scans']}</div>
-                <div class="metric-label">Tomato Scans</div>
-            </div>
-        </div>
-        <div class="mini-bars">
-            <div class="bar-coral" style="height: 30%;"></div>
-            <div class="bar-coral" style="height: 70%;"></div>
-            <div class="bar-coral" style="height: 45%;"></div>
-            <div class="bar-coral high" style="height: 85%;"></div>
-        </div>
-    </div>
-    <div class="metric-card">
-        <div class="metric-left">
-            <div class="metric-icon-wrap icon-green">📋</div>
-            <div>
-                <div class="metric-value">{stats['healthy']}</div>
-                <div class="metric-label">Healthy Plants</div>
-            </div>
-        </div>
-        <div class="mini-bars">
-            <div class="bar-green" style="height: 55%;"></div>
-            <div class="bar-green" style="height: 75%;"></div>
-            <div class="bar-green" style="height: 60%;"></div>
-            <div class="bar-green high" style="height: 100%;"></div>
-        </div>
-    </div>
-    <div class="metric-card">
-        <div class="metric-left">
-            <div class="metric-icon-wrap icon-coral">🐞</div>
-            <div>
-                <div class="metric-value">{stats['diseased']}</div>
-                <div class="metric-label">Diseased Plants</div>
-            </div>
-        </div>
-        <div class="mini-bars">
-            <div class="bar-coral" style="height: 40%;"></div>
-            <div class="bar-coral" style="height: 60%;"></div>
-            <div class="bar-coral" style="height: 50%;"></div>
-            <div class="bar-coral high" style="height: 80%;"></div>
-        </div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
 # Main Two Columns: Left (Analyze) & Right (Result)
