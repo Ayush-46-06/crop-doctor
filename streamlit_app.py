@@ -779,9 +779,9 @@ st.markdown("""
             <p>Intelligent Agricultural Vision Diagnostic Platform</p>
         </div>
     </div>
-    <div class="brand-badge">
-        <span>⚡</span> Powered by Groq Multimodal Vision
-    </div>
+    # <div class="brand-badge">
+    #     <span>⚡</span> Powered by Groq Multimodal Vision
+    # </div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -825,7 +825,7 @@ st.markdown(f"""
 # Statistics Cards Row
 # ---------------------------------------------------------
 stats = st.session_state.stats
-st.markdown(f"""
+# st.markdown(f"""
 <div class="metric-grid">
     <div class="metric-card">
         <div class="metric-left">
