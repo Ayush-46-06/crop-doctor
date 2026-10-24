@@ -1,4 +1,5 @@
 import os
+import io
 import json
 import base64
 import requests
@@ -19,7 +20,7 @@ st.set_page_config(
     page_title="Crop Doctor AI - Detect Plant Diseases",
     page_icon="🌿",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 def get_base64_data_uri(file_path: Path) -> str:
@@ -31,7 +32,6 @@ def get_base64_data_uri(file_path: Path) -> str:
     return ""
 
 banner_img_uri = get_base64_data_uri(ASSETS_DIR / "banner_tomatoes.jpg")
-seedling_img_uri = get_base64_data_uri(ASSETS_DIR / "seedling.jpg")
 sample_leaf_uri = get_base64_data_uri(ASSETS_DIR / "sample_leaf.jpg")
 
 case_uris = [
@@ -39,51 +39,14 @@ case_uris = [
 ]
 
 # ---------------------------------------------------------
-# Default Sample Analysis Data (Matches Screenshot Exactly)
+# Session State Initialization (No Result On Start)
 # ---------------------------------------------------------
-SAMPLE_RESULT = {
-    "image_assessment": "The photo clearly shows a tomato leaf with concentric dark spots and chlorotic yellow rings.",
-    "health_status": "Possible disease signs",
-    "disease_detected": True,
-    "possible_issue": "Early Blight",
-    "scientific_name": "Alternaria solani",
-    "confidence_score": 87,
-    "explanation": "The leaf shows dark brown spots with yellowing around the edges, which are common symptoms of Early Blight in tomato plants.",
-    "observed_symptoms": [
-        "Dark brown or black spots on leaves",
-        "Yellowing around the spots",
-        "Older leaves affected first",
-        "Spots may have concentric rings",
-        "Leaves may dry and fall prematurely"
-    ],
-    "prevention_tips": [
-        "Remove and destroy affected leaves",
-        "Ensure proper spacing between plants",
-        "Avoid overhead watering",
-        "Use organic or approved fungicides",
-        "Keep the field clean and free from plant debris"
-    ],
-    "next_steps": [
-        "Prune lower infected foliage to reduce fungal spore splash",
-        "Apply copper-based or bio-fungicide if spreading",
-        "Consult your local agricultural extension service for regional advice"
-    ],
-    "disclaimer": "Preliminary educational observation only, not a laboratory diagnosis."
-}
-
-# ---------------------------------------------------------
-# Session State Initialization
-# ---------------------------------------------------------
-if "current_page" not in st.session_state:
-    st.session_state.current_page = "Dashboard"
 if "selected_crop" not in st.session_state:
     st.session_state.selected_crop = "Tomato"
 if "analysis_result" not in st.session_state:
-    st.session_state.analysis_result = SAMPLE_RESULT
+    st.session_state.analysis_result = None  # None on start so no result shows before upload!
 if "displayed_image_uri" not in st.session_state:
-    st.session_state.displayed_image_uri = sample_leaf_uri
-if "custom_uploaded_file" not in st.session_state:
-    st.session_state.custom_uploaded_file = None
+    st.session_state.displayed_image_uri = None
 if "stats" not in st.session_state:
     st.session_state.stats = {
         "analyzed": 12,
@@ -93,7 +56,7 @@ if "stats" not in st.session_state:
     }
 
 # ---------------------------------------------------------
-# Custom Styling - Pixel-Perfect Dashboard Aesthetics
+# Strictly Forced Light Theme CSS & Modern Dashboard Styling
 # ---------------------------------------------------------
 st.markdown("""
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -101,230 +64,193 @@ st.markdown("""
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
 
 <style>
-/* Reset & Base */
-html, body, [class*="css"] {
-    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif !important;
+/* 1. Global Reset to Pure Light Theme */
+:root {
+    color-scheme: light !important;
 }
 
-.stApp {
+html, body, [class*="css"], .stApp {
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif !important;
     background-color: #F8FAFB !important;
     color: #1F2937 !important;
+    color-scheme: light !important;
 }
 
-/* Remove default Streamlit top padding and header decor */
+/* 2. Completely Hide Streamlit Sidebar, Top Header, and Hamburger */
+section[data-testid="stSidebar"],
+[data-testid="collapsedControl"],
 header[data-testid="stHeader"] {
-    background-color: transparent !important;
-    height: 1.5rem !important;
+    display: none !important;
 }
+
 .block-container {
-    padding-top: 1rem !important;
-    padding-bottom: 2rem !important;
-    padding-left: 2rem !important;
-    padding-right: 2rem !important;
-    max-width: 1400px !important;
+    padding-top: 1.5rem !important;
+    padding-bottom: 2.5rem !important;
+    padding-left: 3rem !important;
+    padding-right: 3rem !important;
+    max-width: 1440px !important;
+    margin: 0 auto !important;
 }
 
-/* Sidebar Custom Styling */
-section[data-testid="stSidebar"] {
+/* 3. Force All Buttons and Inputs to Light Theme (Prevent Dark Button Inversion) */
+button,
+button[kind="secondary"],
+button[kind="primary"],
+[data-testid="baseButton-secondary"],
+[data-testid="baseButton-primary"],
+.stButton > button {
+    color-scheme: light !important;
+    text-transform: none !important;
+}
+
+/* Secondary Buttons: Crisp White, Dark Text, Light Gray Border */
+button[kind="secondary"],
+[data-testid="baseButton-secondary"],
+div.stButton > button:not([kind="primary"]) {
     background-color: #FFFFFF !important;
-    border-right: 1px solid #EEF2F6 !important;
-    width: 260px !important;
-    padding-top: 1rem !important;
-}
-section[data-testid="stSidebar"] div.block-container {
-    padding-left: 1.2rem !important;
-    padding-right: 1.2rem !important;
-    padding-top: 1rem !important;
+    color: #1E293B !important;
+    border: 1.5px solid #E2E8F0 !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    font-size: 0.88rem !important;
+    padding: 0.6rem 1rem !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03) !important;
+    transition: all 0.15s ease !important;
 }
 
-/* Brand Logo */
-.brand-container {
+button[kind="secondary"]:hover,
+[data-testid="baseButton-secondary"]:hover,
+div.stButton > button:not([kind="primary"]):hover {
+    background-color: #F0FDF4 !important;
+    border-color: #16A34A !important;
+    color: #15803D !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 3px 8px rgba(22, 163, 74, 0.1) !important;
+}
+
+/* Primary Button: Deep Forest Green */
+button[kind="primary"],
+[data-testid="baseButton-primary"],
+div.stButton > button[kind="primary"] {
+    background-color: #14532D !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    border-radius: 12px !important;
+    font-weight: 700 !important;
+    font-size: 0.96rem !important;
+    padding: 0.75rem 1.5rem !important;
+    box-shadow: 0 4px 14px rgba(20, 83, 45, 0.22) !important;
+    transition: all 0.2s ease !important;
+}
+
+button[kind="primary"]:hover,
+[data-testid="baseButton-primary"]:hover,
+div.stButton > button[kind="primary"]:hover {
+    background-color: #0F3D20 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 18px rgba(20, 83, 45, 0.3) !important;
+}
+
+/* Radio Buttons: Force Pure White Background and Dark Text */
+[data-testid="stRadio"] {
+    background-color: transparent !important;
+}
+[data-testid="stRadio"] label,
+[data-testid="stRadio"] span,
+[data-testid="stRadio"] p {
+    color: #1E293B !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+}
+div[data-baseweb="radio"] {
+    background-color: transparent !important;
+}
+div[data-baseweb="radio"] div {
+    background-color: #FFFFFF !important;
+    border-color: #CBD5E1 !important;
+}
+div[data-baseweb="radio"][aria-checked="true"] div {
+    border-color: #16A34A !important;
+    background-color: #16A34A !important;
+}
+
+/* File Uploader Dropzone: Clean Light Background */
+[data-testid="stFileUploader"] section {
+    background-color: #F8FAFC !important;
+    border: 2px dashed #CBD5E1 !important;
+    border-radius: 14px !important;
+    padding: 1.4rem !important;
+    transition: border-color 0.2s !important;
+}
+[data-testid="stFileUploader"] section:hover {
+    border-color: #16A34A !important;
+    background-color: #F0FDF4 !important;
+}
+[data-testid="stFileUploader"] span,
+[data-testid="stFileUploader"] p,
+[data-testid="stFileUploader"] small {
+    color: #475569 !important;
+}
+[data-testid="stFileUploader"] button {
+    background-color: #FFFFFF !important;
+    color: #15803D !important;
+    border: 1.5px solid #DCFCE7 !important;
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+}
+
+/* Top Branding Bar */
+.brand-top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.2rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid #EEF2F6;
+}
+.brand-logo-wrap {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 0.5rem 0.5rem 1.4rem 0.5rem;
 }
-.brand-icon {
-    width: 36px;
-    height: 36px;
+.brand-icon-box {
+    width: 40px;
+    height: 40px;
     background: #EAF7EC;
-    border-radius: 10px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #15803D;
+    font-size: 1.3rem;
 }
-.brand-title {
-    font-size: 1.25rem;
+.brand-header-text h2 {
+    font-size: 1.4rem;
     font-weight: 800;
     color: #111827;
-    line-height: 1.2;
     margin: 0;
+    line-height: 1.15;
 }
-.brand-title span {
+.brand-header-text h2 span {
     color: #16A34A;
 }
-.brand-tagline {
-    font-size: 0.75rem;
-    color: #9CA3AF;
+.brand-header-text p {
+    font-size: 0.8rem;
+    color: #64748B;
     margin: 0;
     font-weight: 500;
 }
-
-/* Nav Menu Items */
-.nav-item-btn {
-    display: flex;
+.brand-badge {
+    display: inline-flex;
     align-items: center;
-    gap: 12px;
-    width: 100%;
-    padding: 10px 14px;
-    border-radius: 10px;
-    font-size: 0.92rem;
-    font-weight: 600;
-    color: #64748B;
-    text-decoration: none;
-    margin-bottom: 4px;
-    transition: all 0.15s ease;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-}
-.nav-item-btn:hover {
-    background: #F1F5F9;
-    color: #1E293B;
-}
-.nav-item-btn.active {
-    background: #EAF7EC !important;
-    color: #15803D !important;
-    font-weight: 700 !important;
-}
-
-/* Sidebar Seedling Promo Card */
-.sidebar-promo-card {
+    gap: 6px;
     background: #F0FDF4;
     border: 1px solid #DCFCE7;
-    border-radius: 16px;
-    padding: 1.2rem 1rem;
-    text-align: center;
-    margin-top: 2rem;
-}
-.sidebar-promo-img {
-    width: 110px;
-    height: 110px;
-    border-radius: 50%;
-    object-fit: cover;
-    margin: 0 auto 0.8rem auto;
-    display: block;
-    box-shadow: 0 4px 14px rgba(22, 163, 74, 0.15);
-}
-.sidebar-promo-title {
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: #14532D;
-    margin-bottom: 0.25rem;
-}
-.sidebar-promo-sub {
+    color: #166534;
+    padding: 6px 14px;
+    border-radius: 9999px;
     font-size: 0.78rem;
-    color: #4B5563;
-    line-height: 1.35;
-    margin: 0;
-}
-
-/* Top Bar */
-.top-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.2rem;
-    gap: 1.5rem;
-}
-.search-wrapper {
-    position: relative;
-    flex: 1;
-    max-width: 460px;
-}
-.search-box {
-    width: 100%;
-    padding: 10px 16px 10px 42px;
-    border-radius: 9999px;
-    border: 1px solid #E2E8F0;
-    background: #FFFFFF;
-    font-size: 0.88rem;
-    color: #334155;
-    outline: none;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-    transition: border 0.2s;
-}
-.search-box:focus {
-    border-color: #16A34A;
-}
-.search-icon-svg {
-    position: absolute;
-    left: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #94A3B8;
-}
-.top-actions {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-}
-.bell-btn {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    background: #FFFFFF;
-    border: 1px solid #E2E8F0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #475569;
-    position: relative;
-    cursor: pointer;
-}
-.bell-dot {
-    position: absolute;
-    top: 8px;
-    right: 9px;
-    width: 7px;
-    height: 7px;
-    background: #EF4444;
-    border-radius: 50%;
-}
-.profile-chip {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 4px 12px 4px 5px;
-    background: #FFFFFF;
-    border: 1px solid #E2E8F0;
-    border-radius: 9999px;
-    cursor: pointer;
-}
-.profile-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: #1E293B;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.82rem;
     font-weight: 700;
-}
-.profile-info {
-    line-height: 1.15;
-}
-.profile-name {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: #0F172A;
-}
-.profile-role {
-    font-size: 0.7rem;
-    color: #64748B;
 }
 
 /* Hero Banner */
@@ -420,11 +346,11 @@ section[data-testid="stSidebar"] div.block-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 1.1rem;
-    margin-bottom: 1.4rem;
+    margin-bottom: 1.5rem;
 }
 .metric-card {
     background: #FFFFFF;
-    border: 1px solid #F1F5F9;
+    border: 1px solid #EEF2F6;
     border-radius: 16px;
     padding: 1.1rem 1.2rem;
     display: flex;
@@ -470,7 +396,7 @@ section[data-testid="stSidebar"] div.block-container {
 .bar-coral { background: #FECACA; width: 4px; border-radius: 2px; }
 .bar-coral.high { background: #EF4444; }
 
-/* Main White Panels */
+/* Panels Styling */
 .main-panel-card {
     background: #FFFFFF;
     border: 1px solid #EEF2F6;
@@ -478,12 +404,6 @@ section[data-testid="stSidebar"] div.block-container {
     padding: 1.5rem;
     box-shadow: 0 2px 10px rgba(0,0,0,0.03);
     height: 100%;
-}
-.panel-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.25rem;
 }
 .panel-title {
     font-size: 1.15rem;
@@ -538,117 +458,75 @@ section[data-testid="stSidebar"] div.block-container {
     max-width: 40px;
 }
 
-/* Dropzone Styling */
-.dropzone-box {
-    border: 2px dashed #CBD5E1;
-    background: #F8FAFC;
-    border-radius: 14px;
-    padding: 2.2rem 1.5rem;
-    text-align: center;
-    transition: all 0.2s ease;
-    margin-bottom: 1.2rem;
-    cursor: pointer;
-}
-.dropzone-box:hover {
-    border-color: #16A34A;
-    background: #F0FDF4;
-}
-.cloud-icon {
-    width: 48px;
-    height: 48px;
-    margin: 0 auto 0.6rem auto;
-    color: #16A34A;
-}
-.dropzone-title {
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: #1E293B;
-    margin-bottom: 0.2rem;
-}
-.dropzone-title span {
-    font-weight: 500;
-    color: #64748B;
-}
-.dropzone-sub {
-    font-size: 0.75rem;
-    color: #94A3B8;
-}
-
-/* Custom File Uploader in Streamlit */
-[data-testid="stFileUploader"] {
-    margin-bottom: 1rem;
-}
-[data-testid="stFileUploader"] section {
-    background: #F8FAFC !important;
-    border: 2px dashed #CBD5E1 !important;
-    border-radius: 14px !important;
-    padding: 1.2rem !important;
-}
-[data-testid="stFileUploader"] section:hover {
-    border-color: #16A34A !important;
-}
-
-/* Crop Tiles Selection */
+/* Crop Selection Label */
 .crop-select-label {
     font-size: 0.82rem;
     font-weight: 700;
     color: #334155;
     margin-bottom: 0.6rem;
 }
-.crop-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
+
+/* Empty State Card (Before User Analyzes) */
+.empty-state-box {
+    border: 2px dashed #E2E8F0;
+    background: #FAFBFB;
+    border-radius: 16px;
+    padding: 3.5rem 2rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 480px;
+}
+.empty-icon-circle {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #F0FDF4;
+    border: 1px solid #DCFCE7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.1);
+}
+.empty-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #0F172A;
+    margin-bottom: 0.4rem;
+}
+.empty-desc {
+    font-size: 0.85rem;
+    color: #64748B;
+    max-width: 360px;
+    line-height: 1.45;
     margin-bottom: 1.4rem;
 }
-.crop-card {
+.empty-features {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    text-align: left;
     background: #FFFFFF;
-    border: 1.5px solid #E2E8F0;
+    border: 1px solid #EEF2F6;
     border-radius: 12px;
-    padding: 10px 8px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.15s;
+    padding: 1rem 1.4rem;
+    width: 100%;
+    max-width: 360px;
 }
-.crop-card:hover {
-    border-color: #86EFAC;
-    transform: translateY(-2px);
-}
-.crop-card.selected {
-    border: 2px solid #16A34A;
-    background: #F0FDF4;
-    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.12);
-}
-.crop-card-icon {
-    font-size: 1.6rem;
-    margin-bottom: 0.2rem;
-    display: block;
-}
-.crop-card-name {
+.empty-feature-item {
     font-size: 0.78rem;
-    font-weight: 700;
-    color: #1E293B;
+    color: #334155;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
 }
 
-/* Primary Action Button */
-div.stButton > button[kind="primary"] {
-    background-color: #14532D !important;
-    color: #FFFFFF !important;
-    border: none !important;
-    border-radius: 12px !important;
-    padding: 0.75rem 1.5rem !important;
-    font-size: 0.95rem !important;
-    font-weight: 700 !important;
-    box-shadow: 0 4px 12px rgba(20, 83, 45, 0.2) !important;
-    transition: all 0.2s !important;
-}
-div.stButton > button[kind="primary"]:hover {
-    background-color: #0F3D20 !important;
-    transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(20, 83, 45, 0.28) !important;
-}
-
-/* Result Section Styles */
+/* Result Section Styles (After Analysis) */
 .result-top-grid {
     display: grid;
     grid-template-columns: 160px 1fr;
@@ -664,14 +542,12 @@ div.stButton > button[kind="primary"]:hover {
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 .disease-badge-card {
-    background: #FEF2F2;
-    border: 1px solid #FEE2E2;
     border-radius: 14px;
     padding: 1rem 1.2rem;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    position: relative;
+    border: 1px solid transparent;
 }
 .disease-badge-header {
     display: flex;
@@ -688,7 +564,6 @@ div.stButton > button[kind="primary"]:hover {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: #FEE2E2;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -697,7 +572,6 @@ div.stButton > button[kind="primary"]:hover {
 .disease-tag {
     font-size: 0.72rem;
     font-weight: 700;
-    color: #DC2626;
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
@@ -712,7 +586,6 @@ div.stButton > button[kind="primary"]:hover {
 .confidence-pct {
     font-size: 1.5rem;
     font-weight: 800;
-    color: #DC2626;
     line-height: 1;
 }
 .disease-name {
@@ -895,79 +768,19 @@ div.stButton > button[kind="primary"]:hover {
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# Sidebar Component
-# ---------------------------------------------------------
-with st.sidebar:
-    st.markdown("""
-    <div class="brand-container">
-        <div class="brand-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/>
-                <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
-            </svg>
-        </div>
-        <div>
-            <h2 class="brand-title">Crop Doctor <span>AI</span></h2>
-            <p class="brand-tagline">Healthy Crops, Brighter Future</p>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    nav_options = [
-        ("Dashboard", "🏠"),
-        ("Analyze Crop", "✨"),
-        ("My Reports", "📄"),
-        ("Crop Guide", "📖"),
-        ("Disease Library", "🪲"),
-        ("Settings", "⚙️")
-    ]
-    
-    for page_name, icon in nav_options:
-        active_class = "active" if st.session_state.current_page == page_name else ""
-        if st.sidebar.button(f"{icon}  {page_name}", key=f"nav_{page_name}", use_container_width=True):
-            st.session_state.current_page = page_name
-            st.rerun()
-
-    # Seedling Promo Card in Sidebar
-    if seedling_img_uri:
-        st.markdown(f"""
-        <div class="sidebar-promo-card">
-            <img class="sidebar-promo-img" src="{seedling_img_uri}" alt="Sprout">
-            <div class="sidebar-promo-title">Grow Healthy<br>Grow Better</div>
-            <p class="sidebar-promo-sub">Get AI-powered insights for healthier and more productive crops.</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-# ---------------------------------------------------------
-# Top Header Bar
+# Clean Top Brand Header (Replaces Sidebar & Class 7 Search)
 # ---------------------------------------------------------
 st.markdown("""
-<div class="top-bar">
-    <div class="search-wrapper">
-        <svg class="search-icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-        </svg>
-        <input type="text" class="search-box" placeholder="Search crops, diseases or tips...">
+<div class="brand-top-bar">
+    <div class="brand-logo-wrap">
+        <div class="brand-icon-box">🌿</div>
+        <div class="brand-header-text">
+            <h2>Crop Doctor <span>AI</span></h2>
+            <p>Intelligent Agricultural Vision Diagnostic Platform</p>
+        </div>
     </div>
-    <div class="top-actions">
-        <div class="bell-btn" title="Notifications">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-            </svg>
-            <div class="bell-dot"></div>
-        </div>
-        <div class="profile-chip">
-            <div class="profile-avatar">👨‍🎓</div>
-            <div class="profile-info">
-                <div class="profile-name">Student</div>
-                <div class="profile-role">Class 7</div>
-            </div>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-        </div>
+    <div class="brand-badge">
+        <span>⚡</span> Powered by Groq Multimodal Vision
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -1078,40 +891,39 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# Main Two-Column Layout: Left (Upload) & Right (Result)
+# Main Two Columns: Left (Analyze) & Right (Result)
 # ---------------------------------------------------------
-col_left, col_right = st.columns([1, 1], gap="medium")
+col_left, col_right = st.columns([1, 1], gap="large")
 
 # =========================================================
 # LEFT COLUMN: Analyze Crop Image
 # =========================================================
 with col_left:
     st.markdown("""
-    <div class="panel-header">
+    <div class="main-panel-card">
         <h3 class="panel-title">Analyze Crop Image</h3>
-    </div>
-    <p class="panel-desc">Upload a clear image of a crop leaf to detect diseases.</p>
-    <div class="stepper-wrap">
-        <div class="step-pill active">
-            <div class="step-num">1</div>
-            <span>Upload Image</span>
+        <p class="panel-desc">Upload a clear image of a crop leaf to detect diseases.</p>
+        <div class="stepper-wrap">
+            <div class="step-pill active">
+                <div class="step-num">1</div>
+                <span>Upload Image</span>
+            </div>
+            <div class="step-line"></div>
+            <div class="step-pill">
+                <div class="step-num">2</div>
+                <span>Select Crop</span>
+            </div>
+            <div class="step-line"></div>
+            <div class="step-pill">
+                <div class="step-num">3</div>
+                <span>Analyze</span>
+            </div>
         </div>
-        <div class="step-line"></div>
-        <div class="step-pill">
-            <div class="step-num">2</div>
-            <span>Select Crop</span>
-        </div>
-        <div class="step-line"></div>
-        <div class="step-pill">
-            <div class="step-num">3</div>
-            <span>Analyze</span>
-        </div>
-    </div>
     """, unsafe_allow_html=True)
 
     input_mode = st.radio(
-        "Upload Source",
-        ["📁 Upload File", "📷 Camera Capture", "✨ Use Sample Early Blight Leaf"],
+        "Upload Mode",
+        ["📁 Upload File", "📷 Camera Capture", "✨ Try Sample Early Blight Leaf"],
         horizontal=True,
         label_visibility="collapsed",
     )
@@ -1119,53 +931,58 @@ with col_left:
     uploaded_file = None
     if input_mode == "📁 Upload File":
         uploaded_file = st.file_uploader(
-            "Upload leaf image",
+            "Choose a JPG or PNG leaf image",
             type=["jpg", "jpeg", "png"],
             help="Supports JPG, PNG up to 5MB",
             label_visibility="collapsed",
+            key="file_uploader_input",
         )
     elif input_mode == "📷 Camera Capture":
-        uploaded_file = st.camera_input("Take photo of leaf", label_visibility="collapsed")
+        uploaded_file = st.camera_input("Take photo of leaf", label_visibility="collapsed", key="camera_input")
     else:
-        # Load local sample early blight leaf
         sample_path = ASSETS_DIR / "sample_leaf.jpg"
         if sample_path.exists():
-            with open(sample_path, "rb") as f:
-                uploaded_file = type("SampleUpload", (), {
-                    "name": "sample_tomato_early_blight.jpg",
-                    "getvalue": f.read,
-                    "type": "image/jpeg"
-                })()
-            st.info("Loaded official sample Early Blight tomato leaf demonstration image.")
+            uploaded_file = io.BytesIO(sample_path.read_bytes())
+            uploaded_file.name = "sample_tomato_early_blight.jpg"
+            uploaded_file.type = "image/jpeg"
+            st.info("Loaded sample tomato early blight leaf. Click **Analyze Crop Image** below to test.")
 
-    # Crop Selection Tiles
+    # Crop Selection
     st.markdown('<div class="crop-select-label">Select Crop</div>', unsafe_allow_html=True)
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        if st.button("🍅\nTomato", key="btn_crop_tomato", use_container_width=True, type="primary" if st.session_state.selected_crop == "Tomato" else "secondary"):
+        if st.button("🍅 Tomato", key="btn_crop_tomato", use_container_width=True, type="primary" if st.session_state.selected_crop == "Tomato" else "secondary"):
             st.session_state.selected_crop = "Tomato"
             st.rerun()
     with c2:
-        if st.button("🥔\nPotato", key="btn_crop_potato", use_container_width=True, type="primary" if st.session_state.selected_crop == "Potato" else "secondary"):
+        if st.button("🥔 Potato", key="btn_crop_potato", use_container_width=True, type="primary" if st.session_state.selected_crop == "Potato" else "secondary"):
             st.session_state.selected_crop = "Potato"
             st.rerun()
     with c3:
-        if st.button("🌽\nMaize", key="btn_crop_maize", use_container_width=True, type="primary" if st.session_state.selected_crop == "Maize" else "secondary"):
+        if st.button("🌽 Maize", key="btn_crop_maize", use_container_width=True, type="primary" if st.session_state.selected_crop == "Maize" else "secondary"):
             st.session_state.selected_crop = "Maize"
             st.rerun()
     with c4:
-        if st.button("🌿\nOther", key="btn_crop_other", use_container_width=True, type="primary" if st.session_state.selected_crop == "Other" else "secondary"):
+        if st.button("🌿 Other", key="btn_crop_other", use_container_width=True, type="primary" if st.session_state.selected_crop == "Other" else "secondary"):
             st.session_state.selected_crop = "Other"
             st.rerun()
 
-    # Trigger Button
+    if uploaded_file is not None:
+        try:
+            st.image(uploaded_file, caption="Leaf Selected for Analysis", width=160)
+        except Exception:
+            pass
+
+    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+
+    # Action Trigger
     analyze_clicked = st.button("✨ Analyze Crop Image", type="primary", use_container_width=True)
 
     if analyze_clicked:
         if uploaded_file is None:
-            st.warning("Please upload an image or choose 'Use Sample Early Blight Leaf' to analyze.")
+            st.warning("Please upload a leaf image, snap a photo, or choose 'Try Sample Early Blight Leaf'.")
         else:
-            with st.spinner("Analyzing leaf with Groq Multimodal AI..."):
+            with st.spinner("Inspecting leaf symptoms with Groq AI..."):
                 try:
                     file_bytes = uploaded_file.getvalue() if hasattr(uploaded_file, "getvalue") else uploaded_file.read()
                     mime_type = getattr(uploaded_file, "type", "image/jpeg") or "image/jpeg"
@@ -1175,7 +992,7 @@ with col_left:
                     b64_img = base64.b64encode(file_bytes).decode("utf-8")
                     st.session_state.displayed_image_uri = f"data:{mime_type};base64,{b64_img}"
 
-                    # Send request to Django API
+                    # Post to Django API
                     response = requests.post(
                         API_URL,
                         files={"image": (uploaded_file.name, file_bytes, mime_type)},
@@ -1193,7 +1010,6 @@ with col_left:
                             st.session_state.stats["diseased"] += 1
                         else:
                             st.session_state.stats["healthy"] += 1
-                        st.success("Analysis complete!")
                         st.rerun()
                     else:
                         err_text = response.text
@@ -1203,113 +1019,146 @@ with col_left:
                             pass
                         st.error(f"Backend analysis error: {err_text}")
                 except requests.exceptions.ConnectionError:
-                    st.error(f"Cannot reach Django API at {API_URL}. Ensure Django backend is running.")
+                    st.error(f"Cannot connect to diagnostic API at `{API_URL}`. Ensure backend is running.")
                 except Exception as ex:
                     st.error(f"Error during analysis: {ex}")
 
+    st.markdown("</div>", unsafe_allow_html=True)
+
 # =========================================================
-# RIGHT COLUMN: Result Card
+# RIGHT COLUMN: Result Card (Only Shows After Image is Put & Analyzed)
 # =========================================================
 with col_right:
-    res = st.session_state.analysis_result or SAMPLE_RESULT
-    leaf_uri = st.session_state.displayed_image_uri or sample_leaf_uri
+    res = st.session_state.analysis_result
+    leaf_uri = st.session_state.displayed_image_uri
 
-    # Panel Header with "New Analysis" Reset button
-    header_col1, header_col2 = st.columns([1, 1])
-    with header_col1:
-        st.markdown('<h3 class="panel-title" style="margin-top: 5px;">Result</h3>', unsafe_allow_html=True)
-    with header_col2:
-        if st.button("🔄 New Analysis", key="btn_reset_analysis", use_container_width=False):
-            st.session_state.analysis_result = SAMPLE_RESULT
-            st.session_state.displayed_image_uri = sample_leaf_uri
-            st.rerun()
-
-    disease_name = res.get("possible_issue", "Early Blight")
-    scientific = res.get("scientific_name", "Alternaria solani")
-    confidence = res.get("confidence_score", 87)
-    explanation = res.get("explanation", "The leaf shows dark brown spots with yellowing around the edges, which are common symptoms of Early Blight in tomato plants.")
-    symptoms = res.get("observed_symptoms", [])
-    prevention = res.get("prevention_tips", [])
-
-    is_healthy = res.get("health_status") == "Appears healthy"
-    badge_tag = "HEALTHY CROP" if is_healthy else "Disease Detected"
-    badge_bg = "#F0FDF4" if is_healthy else "#FEF2F2"
-    badge_border = "#DCFCE7" if is_healthy else "#FEE2E2"
-    badge_color = "#16A34A" if is_healthy else "#DC2626"
-    badge_icon = "🟢" if is_healthy else "🐞"
-
-    # Top Section: Leaf Image & Disease Card
-    st.markdown(f"""
-    <div class="result-top-grid">
-        <img class="result-leaf-img" src="{leaf_uri}" alt="Crop Leaf">
-        <div class="disease-badge-card" style="background:{badge_bg}; border-color:{badge_border};">
-            <div class="disease-badge-header">
-                <div class="disease-tag-wrap">
-                    <div class="disease-icon-circle" style="background:{badge_border};">{badge_icon}</div>
-                    <span class="disease-tag" style="color:{badge_color};">{badge_tag}</span>
-                </div>
-                <div class="confidence-box">
-                    <div class="confidence-lbl">Confidence</div>
-                    <div class="confidence-pct" style="color:{badge_color};">{confidence}%</div>
+    # If no analysis has been run yet: Show clean empty state!
+    if res is None or leaf_uri is None:
+        st.markdown("""
+        <div class="main-panel-card">
+            <h3 class="panel-title">Result</h3>
+            <p class="panel-desc">Diagnostic report, confidence score, and care advice will appear here.</p>
+            <div class="empty-state-box">
+                <div class="empty-icon-circle">🍃</div>
+                <div class="empty-title">Awaiting Crop Leaf Image</div>
+                <p class="empty-desc">
+                    Upload or take a photo of a crop leaf on the left, then click <strong>Analyze Crop Image</strong> to generate an instant diagnosis.
+                </p>
+                <div class="empty-features">
+                    <div class="empty-feature-item">
+                        <span style="color:#16A34A;">✓</span> Multimodal visual leaf disease detection
+                    </div>
+                    <div class="empty-feature-item">
+                        <span style="color:#16A34A;">✓</span> Specific pathogen & scientific classification
+                    </div>
+                    <div class="empty-feature-item">
+                        <span style="color:#16A34A;">✓</span> Concentric spot & chlorosis symptom breakdown
+                    </div>
+                    <div class="empty-feature-item">
+                        <span style="color:#16A34A;">✓</span> Actionable non-chemical care & prevention tips
+                    </div>
                 </div>
             </div>
-            <h4 class="disease-name">{disease_name}</h4>
-            <div class="scientific-name">({scientific})</div>
-            <p class="disease-desc">{explanation}</p>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
+    else:
+        # Full diagnostic report shown ONLY after user uploaded & analyzed!
+        header_col1, header_col2 = st.columns([1, 1])
+        with header_col1:
+            st.markdown('<h3 class="panel-title" style="margin-top: 6px;">Result</h3>', unsafe_allow_html=True)
+        with header_col2:
+            if st.button("🔄 New Analysis", key="btn_reset_analysis", use_container_width=False):
+                st.session_state.analysis_result = None
+                st.session_state.displayed_image_uri = None
+                st.rerun()
 
-    # Middle Section: Symptoms & Prevention Cards
-    symptoms_html = "".join([f'<li><div class="dot-amber"></div><span>{s}</span></li>' for s in symptoms[:5]])
-    prevention_html = "".join([
-        f'<li><svg class="check-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span>{p}</span></li>'
-        for p in prevention[:5]
-    ])
+        disease_name = res.get("possible_issue", "Early Blight")
+        scientific = res.get("scientific_name", "")
+        confidence = res.get("confidence_score", 87)
+        explanation = res.get("explanation", "The leaf shows dark brown spots with yellowing around the edges, which are common symptoms of Early Blight in tomato plants.")
+        symptoms = res.get("observed_symptoms", [])
+        prevention = res.get("prevention_tips", [])
 
-    st.markdown(f"""
-    <div class="detail-cards-grid">
-        <div class="symptoms-card">
-            <div class="detail-card-head">
-                <span style="font-size: 1.1rem;">⚠️</span>
-                <h5 class="symptoms-title">Symptoms</h5>
+        is_healthy = res.get("health_status") == "Appears healthy"
+        badge_tag = "HEALTHY PLANT" if is_healthy else "DISEASE DETECTED"
+        badge_bg = "#F0FDF4" if is_healthy else "#FEF2F2"
+        badge_border = "#DCFCE7" if is_healthy else "#FEE2E2"
+        badge_color = "#16A34A" if is_healthy else "#DC2626"
+        badge_icon = "🟢" if is_healthy else "🐞"
+        scientific_html = f'<div class="scientific-name">({scientific})</div>' if scientific and scientific != "N/A" else ""
+
+        # Top Section: Leaf Image & Disease Card
+        st.markdown(f"""
+        <div class="result-top-grid">
+            <img class="result-leaf-img" src="{leaf_uri}" alt="Crop Leaf">
+            <div class="disease-badge-card" style="background:{badge_bg}; border-color:{badge_border};">
+                <div class="disease-badge-header">
+                    <div class="disease-tag-wrap">
+                        <div class="disease-icon-circle" style="background:{badge_border};">{badge_icon}</div>
+                        <span class="disease-tag" style="color:{badge_color};">{badge_tag}</span>
+                    </div>
+                    <div class="confidence-box">
+                        <div class="confidence-lbl">Confidence</div>
+                        <div class="confidence-pct" style="color:{badge_color};">{confidence}%</div>
+                    </div>
+                </div>
+                <h4 class="disease-name">{disease_name}</h4>
+                {scientific_html}
+                <p class="disease-desc">{explanation}</p>
             </div>
-            <ul class="detail-list">
-                {symptoms_html}
-            </ul>
         </div>
-        <div class="prevention-card">
-            <div class="detail-card-head">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                <h5 class="prevention-title">Prevention & Care</h5>
-            </div>
-            <ul class="detail-list">
-                {prevention_html}
-            </ul>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
-    # Bottom Section: Similar Cases & Learning Resource
-    cases_html = "".join([f'<img class="case-thumb" src="{uri}" alt="Case">' for uri in case_uris if uri])
+        # Middle Section: Symptoms & Prevention Cards
+        symptoms_html = "".join([f'<li><div class="dot-amber"></div><span>{s}</span></li>' for s in symptoms[:5]])
+        prevention_html = "".join([
+            f'<li><svg class="check-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span>{p}</span></li>'
+            for p in prevention[:5]
+        ])
 
-    st.markdown(f"""
-    <div class="bottom-result-grid">
-        <div class="cases-card">
-            <div class="cases-title">Similar Cases</div>
-            <div class="cases-gallery">
-                {cases_html}
+        st.markdown(f"""
+        <div class="detail-cards-grid">
+            <div class="symptoms-card">
+                <div class="detail-card-head">
+                    <span style="font-size: 1.1rem;">⚠️</span>
+                    <h5 class="symptoms-title">Symptoms</h5>
+                </div>
+                <ul class="detail-list">
+                    {symptoms_html}
+                </ul>
+            </div>
+            <div class="prevention-card">
+                <div class="detail-card-head">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    <h5 class="prevention-title">Prevention & Care</h5>
+                </div>
+                <ul class="detail-list">
+                    {prevention_html}
+                </ul>
             </div>
         </div>
-        <a class="resource-card" href="https://en.wikipedia.org/wiki/Alternaria_solani" target="_blank">
-            <div class="resource-left">
-                <div class="resource-icon">📖</div>
-                <div>
-                    <div class="resource-title">Learning Resource</div>
-                    <div class="resource-sub">Learn more about {disease_name}, its causes and control methods.</div>
+        """, unsafe_allow_html=True)
+
+        # Bottom Section: Similar Cases & Learning Resource
+        cases_html = "".join([f'<img class="case-thumb" src="{uri}" alt="Case">' for uri in case_uris if uri])
+
+        st.markdown(f"""
+        <div class="bottom-result-grid">
+            <div class="cases-card">
+                <div class="cases-title">Similar Cases</div>
+                <div class="cases-gallery">
+                    {cases_html}
                 </div>
             </div>
-            <div class="resource-arrow">→</div>
-        </a>
-    </div>
-    """, unsafe_allow_html=True)
+            <a class="resource-card" href="https://en.wikipedia.org/wiki/{disease_name.replace(' ', '_')}" target="_blank">
+                <div class="resource-left">
+                    <div class="resource-icon">📖</div>
+                    <div>
+                        <div class="resource-title">Learning Resource</div>
+                        <div class="resource-sub">Learn more about {disease_name}, its biology and management.</div>
+                    </div>
+                </div>
+                <div class="resource-arrow">→</div>
+            </a>
+        </div>
+        """, unsafe_allow_html=True)
