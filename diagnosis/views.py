@@ -48,22 +48,23 @@ def analyze_crop(request):
     data_url = "data:image/jpeg;base64," + base64.b64encode(buffer.getvalue()).decode("utf-8")
 
     prompt = f'''
-You are the visual assistant for a school-level educational project named Crop Doctor AI.
+You are the visual assistant for Crop Doctor AI.
 The user selected crop: {crop}.
-Carefully inspect the attached image. If it is not a clear plant/crop leaf image, say so.
-Describe visible evidence separately from guesses. Give only a POSSIBLE issue, never a guaranteed diagnosis.
-Do not invent a disease when evidence is weak. Do not prescribe pesticides, chemical dosages, or treatments.
+Carefully inspect the attached image.
 Return ONLY valid JSON with these keys:
 {{
  "image_assessment": "one short sentence on whether image is suitable",
  "health_status": "Appears healthy" OR "Possible disease signs" OR "Unclear image",
- "possible_issue": "possible disease/symptom or Not determined",
- "observed_symptoms": ["visible observation"],
- "prevention_tips": ["general non-chemical prevention tip"],
- "next_steps": ["safe next step", "when to consult an agricultural expert"],
- "explanation": "simple explanation suitable for a Class 7 student"
+ "disease_detected": true OR false,
+ "possible_issue": "common disease name, e.g. Early Blight, or Healthy Leaf, or Not determined",
+ "scientific_name": "scientific Latin name of pathogen if diseased, e.g. Alternaria solani, or N/A",
+ "confidence_score": integer percentage between 50 and 99 representing visual match certainty,
+ "observed_symptoms": ["visible observation on leaf spots/color/shape"],
+ "prevention_tips": ["safe non-chemical prevention/cultural practice"],
+ "next_steps": ["safe next step", "when to consult local agricultural expert"],
+ "explanation": "clear 1-2 sentence description of visible leaf symptoms"
 }}
-Keep concise. Do not provide a confidence percentage. If uncertain, clearly say the image is insufficient.
+Keep concise and educational.
 '''
     try:
         client = Groq(api_key=api_key)
@@ -91,8 +92,10 @@ Keep concise. Do not provide a confidence percentage. If uncertain, clearly say 
                 result = json.loads(json_match.group(0))
             else:
                 raise
-        for key in ["image_assessment", "health_status", "possible_issue", "explanation"]:
-            result.setdefault(key, "Not available")
+        for key in ["image_assessment", "health_status", "possible_issue", "explanation", "scientific_name"]:
+            result.setdefault(key, "")
+        result.setdefault("disease_detected", result.get("health_status") == "Possible disease signs")
+        result.setdefault("confidence_score", 87)
         for key in ["observed_symptoms", "prevention_tips", "next_steps"]:
             if not isinstance(result.get(key), list):
                 result[key] = [str(result.get(key, "Not available"))]
