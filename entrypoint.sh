@@ -19,8 +19,8 @@ case "$1" in
         ;;
     frontend)
         APP_PORT="${PORT:-8501}"
-        echo "==> Starting Streamlit UI on 0.0.0.0:$APP_PORT..."
-        exec streamlit run streamlit_app.py \
+        echo "==> Starting Streamlit UI with /health support on 0.0.0.0:$APP_PORT..."
+        exec python server.py run streamlit_app.py \
             --server.port="$APP_PORT" \
             --server.address=0.0.0.0 \
             --server.headless=true \
@@ -48,8 +48,8 @@ case "$1" in
         BACKEND_PID=$!
 
         APP_PORT="${PORT:-8501}"
-        echo "==> Starting Streamlit UI on 0.0.0.0:$APP_PORT..."
-        streamlit run streamlit_app.py \
+        echo "==> Starting Streamlit UI with /health support on 0.0.0.0:$APP_PORT..."
+        python server.py run streamlit_app.py \
             --server.port="$APP_PORT" \
             --server.address=0.0.0.0 \
             --server.headless=true \

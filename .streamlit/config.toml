@@ -10,4 +10,6 @@ font = "sans serif"
 headless = true
 enableCORS = false
 enableXsrfProtection = false
-browser.gatherUsageStats = false
+
+[browser]
+gatherUsageStats = false
