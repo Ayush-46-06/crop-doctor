@@ -10,6 +10,11 @@ font = "sans serif"
 headless = true
 enableCORS = false
 enableXsrfProtection = false
+enableStaticServing = true
+fileWatcherType = "none"
+fastReruns = true
+maxUploadSize = 10
 
 [browser]
 gatherUsageStats = false
+

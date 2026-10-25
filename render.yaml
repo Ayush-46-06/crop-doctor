@@ -21,3 +21,6 @@ services:
         value: "http://127.0.0.1:8000/api/analyze/"
       - key: PORT
         value: "8501"
+      - key: PYTHONOPTIMIZE
+        value: "1"
+

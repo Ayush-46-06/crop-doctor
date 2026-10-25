@@ -23,7 +23,9 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-def get_base64_data_uri(file_path: Path) -> str:
+@st.cache_data(show_spinner=False)
+def get_base64_data_uri(file_path_str: str) -> str:
+    file_path = Path(file_path_str)
     if file_path.exists():
         mime = "image/png" if file_path.suffix.lower() == ".png" else "image/jpeg"
         with open(file_path, "rb") as f:
@@ -31,11 +33,16 @@ def get_base64_data_uri(file_path: Path) -> str:
             return f"data:{mime};base64,{encoded}"
     return ""
 
-banner_img_uri = get_base64_data_uri(ASSETS_DIR / "banner_tomatoes.jpg")
-sample_leaf_uri = get_base64_data_uri(ASSETS_DIR / "sample_leaf.jpg")
+@st.cache_data(show_spinner=False)
+def get_sample_leaf_bytes(file_path_str: str) -> bytes:
+    p = Path(file_path_str)
+    return p.read_bytes() if p.exists() else b""
+
+banner_img_uri = get_base64_data_uri(str(ASSETS_DIR / "banner_tomatoes.jpg"))
+sample_leaf_uri = get_base64_data_uri(str(ASSETS_DIR / "sample_leaf.jpg"))
 
 case_uris = [
-    get_base64_data_uri(ASSETS_DIR / "cases" / f"case{i}.jpg") for i in range(1, 6)
+    get_base64_data_uri(str(ASSETS_DIR / "cases" / f"case{i}.jpg")) for i in range(1, 6)
 ]
 
 # ---------------------------------------------------------
@@ -70,7 +77,7 @@ st.markdown("""
 }
 
 html, body, [class*="css"], .stApp {
-    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif !important;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
     background-color: #F8FAFB !important;
     color: #1F2937 !important;
     color-scheme: light !important;
@@ -86,10 +93,19 @@ header[data-testid="stHeader"] {
 .block-container {
     padding-top: 1.5rem !important;
     padding-bottom: 2.5rem !important;
-    padding-left: 3rem !important;
-    padding-right: 3rem !important;
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
     max-width: 1440px !important;
     margin: 0 auto !important;
+}
+
+@media (max-width: 768px) {
+    .block-container {
+        padding-top: 0.8rem !important;
+        padding-bottom: 1.8rem !important;
+        padding-left: 0.85rem !important;
+        padding-right: 0.85rem !important;
+    }
 }
 
 /* 3. Force All Buttons and Inputs to Light Theme (Prevent Dark Button Inversion) */
@@ -252,6 +268,83 @@ div[data-baseweb="radio"][aria-checked="true"] div {
     font-size: 0.78rem;
     font-weight: 700;
 }
+.showcase-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%);
+    border: 1.5px solid #86EFAC;
+    padding: 7px 16px;
+    border-radius: 9999px;
+    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.12);
+}
+.showcase-sparkle {
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+}
+.showcase-text {
+    display: flex;
+    flex-direction: column;
+    text-align: right;
+    line-height: 1.25;
+}
+.showcase-title {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #15803D;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.showcase-author {
+    font-size: 0.82rem;
+    color: #166534;
+    font-weight: 600;
+}
+.showcase-author strong {
+    color: #0F172A;
+    font-weight: 800;
+}
+
+/* Footer Showcase Card */
+.project-showcase-footer {
+    margin-top: 2.8rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #E2E8F0;
+    text-align: center;
+}
+.showcase-footer-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    max-width: 640px;
+    margin: 0 auto;
+}
+.showcase-badge-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #EAF7EC;
+    color: #166534;
+    border: 1px solid #DCFCE7;
+    font-size: 0.74rem;
+    font-weight: 800;
+    padding: 4px 14px;
+    border-radius: 9999px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.showcase-desc {
+    font-size: 0.84rem;
+    color: #475569;
+    line-height: 1.5;
+    margin: 0;
+}
+.showcase-desc strong {
+    color: #0F172A;
+}
+
 
 /* Hero Banner */
 .hero-banner {
@@ -261,7 +354,7 @@ div[data-baseweb="radio"][aria-checked="true"] div {
     margin-bottom: 1.4rem;
     box-shadow: 0 4px 20px rgba(20, 83, 45, 0.12);
     display: flex;
-    min-height: 190px;
+    min-height: 180px;
     background-color: #0F3D20;
 }
 .hero-bg-img {
@@ -269,21 +362,23 @@ div[data-baseweb="radio"][aria-checked="true"] div {
     right: 0;
     top: 0;
     bottom: 0;
-    width: 65%;
+    width: 60%;
     object-fit: cover;
     object-position: right center;
+    pointer-events: none;
 }
 .hero-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(90deg, #0D351B 0%, #134826 42%, rgba(19, 72, 38, 0.72) 70%, rgba(19, 72, 38, 0.2) 100%);
+    background: linear-gradient(90deg, #0D351B 0%, #134826 45%, rgba(19, 72, 38, 0.78) 75%, rgba(19, 72, 38, 0.25) 100%);
     z-index: 1;
+    pointer-events: none;
 }
 .hero-content {
     position: relative;
     z-index: 2;
     padding: 1.8rem 2.2rem;
-    max-width: 650px;
+    max-width: 620px;
     color: white;
 }
 .hero-title {
@@ -292,6 +387,7 @@ div[data-baseweb="radio"][aria-checked="true"] div {
     color: #FFFFFF;
     margin: 0 0 0.35rem 0;
     letter-spacing: -0.02em;
+    line-height: 1.15;
 }
 .hero-title span {
     color: #4ADE80;
@@ -299,46 +395,88 @@ div[data-baseweb="radio"][aria-checked="true"] div {
 .hero-subtitle {
     font-size: 0.95rem;
     color: #D1FAE5;
-    margin: 0 0 1.2rem 0;
+    margin: 0 0 1.1rem 0;
     font-weight: 500;
+    line-height: 1.35;
 }
 .workflow-pills {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     flex-wrap: wrap;
+    position: relative;
+    z-index: 3;
 }
 .workflow-step {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     padding: 5px 12px;
     border-radius: 9999px;
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.14);
     backdrop-filter: blur(4px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    font-size: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    font-size: 0.74rem;
     font-weight: 600;
     color: #FFFFFF;
+    white-space: nowrap;
 }
 .workflow-step svg {
     color: #4ADE80;
+    flex-shrink: 0;
 }
 .workflow-arrow {
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.45);
     font-size: 0.75rem;
+    user-select: none;
 }
+
+/* Slogan sticker: NEVER overlap pills on mobile/narrow screens!
+   Hidden by default; only displayed on wide desktop displays where there is ample right-side space */
 .hero-sticker {
-    position: absolute;
-    right: 2.2rem;
-    bottom: 1.4rem;
-    z-index: 2;
-    font-family: 'Caveat', cursive;
-    color: #FFFFFF;
-    font-size: 1.4rem;
-    font-weight: 700;
-    text-shadow: 0 2px 8px rgba(0,0,0,0.4);
-    transform: rotate(-3deg);
+    display: none;
+}
+
+@media (min-width: 992px) {
+    .hero-sticker {
+        display: block;
+        position: absolute;
+        right: 2rem;
+        bottom: 1.25rem;
+        z-index: 2;
+        font-family: 'Caveat', cursive;
+        color: #FFFFFF;
+        font-size: 1.35rem;
+        font-weight: 700;
+        white-space: nowrap;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+        transform: rotate(-3deg);
+        pointer-events: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .hero-banner {
+        min-height: auto;
+    }
+    .hero-content {
+        padding: 1.3rem 1.1rem;
+        max-width: 100%;
+    }
+    .hero-title {
+        font-size: 1.5rem;
+    }
+    .hero-subtitle {
+        font-size: 0.85rem;
+        margin-bottom: 0.9rem;
+    }
+    .workflow-step {
+        font-size: 0.7rem;
+        padding: 4px 10px;
+    }
+    .workflow-arrow {
+        font-size: 0.68rem;
+    }
 }
 
 /* Metric Cards Row */
@@ -764,6 +902,50 @@ div[data-baseweb="radio"][aria-checked="true"] div {
     font-size: 0.8rem;
     font-weight: 700;
 }
+
+/* Responsive Layout Optimizations */
+@media (max-width: 768px) {
+    .main-panel-card {
+        padding: 1.15rem;
+    }
+    .empty-state-box {
+        padding: 2.2rem 1rem;
+        min-height: 360px;
+    }
+    .result-top-grid {
+        grid-template-columns: 1fr;
+        gap: 0.9rem;
+    }
+    .result-leaf-img {
+        width: 100%;
+        height: 180px;
+    }
+    .detail-cards-grid {
+        grid-template-columns: 1fr;
+        gap: 0.8rem;
+    }
+    .bottom-result-grid {
+        grid-template-columns: 1fr;
+        gap: 0.8rem;
+    }
+    .cases-gallery {
+        flex-wrap: wrap;
+    }
+    .brand-top-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 0.9rem;
+    }
+    .showcase-badge {
+        width: 100%;
+        justify-content: flex-start;
+        padding: 6px 12px;
+    }
+    .showcase-text {
+        text-align: left;
+    }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -777,6 +959,13 @@ st.markdown("""
         <div class="brand-header-text">
             <h2>Crop Doctor <span>AI</span></h2>
             <p>Intelligent Agricultural Vision Diagnostic Platform</p>
+        </div>
+    </div>
+    <div class="showcase-badge">
+        <span class="showcase-sparkle">🎓</span>
+        <div class="showcase-text">
+            <span class="showcase-title">AI Project Showcase</span>
+            <span class="showcase-author">by <strong>Hiral Yadav</strong> • Class 8</span>
         </div>
     </div>
 </div>
@@ -870,8 +1059,9 @@ with col_left:
         uploaded_file = st.camera_input("Take photo of leaf", label_visibility="collapsed", key="camera_input")
     else:
         sample_path = ASSETS_DIR / "sample_leaf.jpg"
-        if sample_path.exists():
-            uploaded_file = io.BytesIO(sample_path.read_bytes())
+        raw_bytes = get_sample_leaf_bytes(str(sample_path))
+        if raw_bytes:
+            uploaded_file = io.BytesIO(raw_bytes)
             uploaded_file.name = "sample_tomato_early_blight.jpg"
             uploaded_file.type = "image/jpeg"
             st.info("Loaded sample tomato early blight leaf. Click **Analyze Crop Image** below to test.")
@@ -1091,3 +1281,21 @@ with col_right:
             </a>
         </div>
         """, unsafe_allow_html=True)
+
+# ---------------------------------------------------------
+# Project Showcase Footer Credit
+# ---------------------------------------------------------
+st.markdown("""
+<div class="project-showcase-footer">
+    <div class="showcase-footer-content">
+        <div class="showcase-badge-pill">✨ Student AI Project Showcase</div>
+        <p class="showcase-desc">
+            <strong>Crop Doctor AI</strong> was created for the <strong>AI Project Showcase</strong> by <strong>Hiral Yadav</strong> (Class 8).
+        </p>
+        <p style="font-size: 0.75rem; color: #94A3B8; margin: 0;">
+            Empowering agriculture through artificial intelligence and computer vision
+        </p>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+

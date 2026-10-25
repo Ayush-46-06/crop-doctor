@@ -2,8 +2,12 @@
 set -e
 
 run_migrations() {
-    echo "==> Running Django database migrations..."
-    python manage.py migrate --noinput
+    if [ ! -f "db.sqlite3" ]; then
+        echo "==> Running Django database migrations..."
+        python manage.py migrate --noinput
+    else
+        echo "==> Database already initialized, skipping migration check."
+    fi
 }
 
 case "$1" in
@@ -12,7 +16,7 @@ case "$1" in
         APP_PORT="${PORT:-8000}"
         echo "==> Starting Django API server on 0.0.0.0:$APP_PORT..."
         if command -v gunicorn >/dev/null 2>&1; then
-            exec gunicorn cropdoctor.wsgi:application --bind "0.0.0.0:$APP_PORT" --workers 2 --timeout 120
+            exec gunicorn cropdoctor.wsgi:application --bind "0.0.0.0:$APP_PORT" --workers 1 --threads 4 --timeout 120
         else
             exec python manage.py runserver "0.0.0.0:$APP_PORT"
         fi
@@ -27,7 +31,8 @@ case "$1" in
             --server.enableCORS=false \
             --server.enableXsrfProtection=false \
             --browser.gatherUsageStats=false \
-            --server.fileWatcherType=none
+            --server.fileWatcherType=none \
+            --server.enableStaticServing=true
         ;;
     all|"")
         echo "==> Starting in single-container mode (Django API + Streamlit UI)..."
@@ -41,7 +46,7 @@ case "$1" in
 
         echo "==> Starting Django API server on 127.0.0.1:8000 in background..."
         if command -v gunicorn >/dev/null 2>&1; then
-            gunicorn cropdoctor.wsgi:application --bind 127.0.0.1:8000 --workers 2 --timeout 120 &
+            gunicorn cropdoctor.wsgi:application --bind 127.0.0.1:8000 --workers 1 --threads 4 --timeout 120 &
         else
             python manage.py runserver 127.0.0.1:8000 &
         fi
@@ -56,7 +61,8 @@ case "$1" in
             --server.enableCORS=false \
             --server.enableXsrfProtection=false \
             --browser.gatherUsageStats=false \
-            --server.fileWatcherType=none &
+            --server.fileWatcherType=none \
+            --server.enableStaticServing=true &
         FRONTEND_PID=$!
 
         # Wait for any process to stop, then clean up
@@ -69,3 +75,4 @@ case "$1" in
         exec "$@"
         ;;
 esac
+
