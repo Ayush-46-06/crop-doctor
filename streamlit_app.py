@@ -1017,27 +1017,19 @@ col_left, col_right = st.columns([1, 1], gap="large")
 # LEFT COLUMN: Analyze Crop Image
 # =========================================================
 with col_left:
-    st.markdown("""
-    <div class="main-panel-card">
-        <h3 class="panel-title">Analyze Crop Image</h3>
-        <p class="panel-desc">Upload a clear image of a crop leaf to detect diseases.</p>
-        <div class="stepper-wrap">
-            <div class="step-pill active">
-                <div class="step-num">1</div>
-                <span>Upload Image</span>
-            </div>
-            <div class="step-line"></div>
-            <div class="step-pill">
-                <div class="step-num">2</div>
-                <span>Select Crop</span>
-            </div>
-            <div class="step-line"></div>
-            <div class="step-pill">
-                <div class="step-num">3</div>
-                <span>Analyze</span>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
+    stepper_html = (
+        '<div class="main-panel-card">'
+        '<h3 class="panel-title">Analyze Crop Image</h3>'
+        '<p class="panel-desc">Upload a clear image of a crop leaf to detect diseases.</p>'
+        '<div class="stepper-wrap">'
+        '<div class="step-pill active"><div class="step-num">1</div><span>Upload Image</span></div>'
+        '<div class="step-line"></div>'
+        '<div class="step-pill"><div class="step-num">2</div><span>Select Crop</span></div>'
+        '<div class="step-line"></div>'
+        '<div class="step-pill"><div class="step-num">3</div><span>Analyze</span></div>'
+        '</div>'
+    )
+    st.markdown(stepper_html, unsafe_allow_html=True)
 
     input_mode = st.radio(
         "Upload Mode",
@@ -1153,33 +1145,26 @@ with col_right:
 
     # If no analysis has been run yet: Show clean empty state!
     if res is None or leaf_uri is None:
-        st.markdown("""
-        <div class="main-panel-card">
-            <h3 class="panel-title">Result</h3>
-            <p class="panel-desc">Diagnostic report, confidence score, and care advice will appear here.</p>
-            <div class="empty-state-box">
-                <div class="empty-icon-circle">🍃</div>
-                <div class="empty-title">Awaiting Crop Leaf Image</div>
-                <p class="empty-desc">
-                    Upload or take a photo of a crop leaf on the left, then click <strong>Analyze Crop Image</strong> to generate an instant diagnosis.
-                </p>
-                <div class="empty-features">
-                    <div class="empty-feature-item">
-                        <span style="color:#16A34A;">✓</span> Multimodal visual leaf disease detection
-                    </div>
-                    <div class="empty-feature-item">
-                        <span style="color:#16A34A;">✓</span> Specific pathogen & scientific classification
-                    </div>
-                    <div class="empty-feature-item">
-                        <span style="color:#16A34A;">✓</span> Concentric spot & chlorosis symptom breakdown
-                    </div>
-                    <div class="empty-feature-item">
-                        <span style="color:#16A34A;">✓</span> Actionable non-chemical care & prevention tips
-                    </div>
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        empty_html = (
+            '<div class="main-panel-card">'
+            '<h3 class="panel-title">Result</h3>'
+            '<p class="panel-desc">Diagnostic report, confidence score, and care advice will appear here.</p>'
+            '<div class="empty-state-box">'
+            '<div class="empty-icon-circle">🍃</div>'
+            '<div class="empty-title">Awaiting Crop Leaf Image</div>'
+            '<p class="empty-desc">'
+            'Upload or take a photo of a crop leaf on the left, then click <strong>Analyze Crop Image</strong> to generate an instant diagnosis.'
+            '</p>'
+            '<div class="empty-features">'
+            '<div class="empty-feature-item"><span style="color:#16A34A;">✓</span> Multimodal visual leaf disease detection</div>'
+            '<div class="empty-feature-item"><span style="color:#16A34A;">✓</span> Specific pathogen & scientific classification</div>'
+            '<div class="empty-feature-item"><span style="color:#16A34A;">✓</span> Concentric spot & chlorosis symptom breakdown</div>'
+            '<div class="empty-feature-item"><span style="color:#16A34A;">✓</span> Actionable non-chemical care & prevention tips</div>'
+            '</div>'
+            '</div>'
+            '</div>'
+        )
+        st.markdown(empty_html, unsafe_allow_html=True)
     else:
         # Full diagnostic report shown ONLY after user uploaded & analyzed!
         header_col1, header_col2 = st.columns([1, 1])
@@ -1204,29 +1189,30 @@ with col_right:
         badge_border = "#DCFCE7" if is_healthy else "#FEE2E2"
         badge_color = "#16A34A" if is_healthy else "#DC2626"
         badge_icon = "🟢" if is_healthy else "🐞"
-        scientific_html = f'<div class="scientific-name">({scientific})</div>' if scientific and scientific != "N/A" else ""
+        scientific_tag = f'<div class="scientific-name">({scientific})</div>' if scientific and scientific != "N/A" else ""
 
         # Top Section: Leaf Image & Disease Card
-        st.markdown(f"""
-        <div class="result-top-grid">
-            <img class="result-leaf-img" src="{leaf_uri}" alt="Crop Leaf">
-            <div class="disease-badge-card" style="background:{badge_bg}; border-color:{badge_border};">
-                <div class="disease-badge-header">
-                    <div class="disease-tag-wrap">
-                        <div class="disease-icon-circle" style="background:{badge_border};">{badge_icon}</div>
-                        <span class="disease-tag" style="color:{badge_color};">{badge_tag}</span>
-                    </div>
-                    <div class="confidence-box">
-                        <div class="confidence-lbl">Confidence</div>
-                        <div class="confidence-pct" style="color:{badge_color};">{confidence}%</div>
-                    </div>
-                </div>
-                <h4 class="disease-name">{disease_name}</h4>
-                {scientific_html}
-                <p class="disease-desc">{explanation}</p>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        top_card_html = (
+            f'<div class="result-top-grid">'
+            f'<img class="result-leaf-img" src="{leaf_uri}" alt="Crop Leaf">'
+            f'<div class="disease-badge-card" style="background:{badge_bg}; border-color:{badge_border};">'
+            f'<div class="disease-badge-header">'
+            f'<div class="disease-tag-wrap">'
+            f'<div class="disease-icon-circle" style="background:{badge_border};">{badge_icon}</div>'
+            f'<span class="disease-tag" style="color:{badge_color};">{badge_tag}</span>'
+            f'</div>'
+            f'<div class="confidence-box">'
+            f'<div class="confidence-lbl">Confidence</div>'
+            f'<div class="confidence-pct" style="color:{badge_color};">{confidence}%</div>'
+            f'</div>'
+            f'</div>'
+            f'<h4 class="disease-name">{disease_name}</h4>'
+            f'{scientific_tag}'
+            f'<p class="disease-desc">{explanation}</p>'
+            f'</div>'
+            f'</div>'
+        )
+        st.markdown(top_card_html, unsafe_allow_html=True)
 
         # Middle Section: Symptoms & Prevention Cards
         symptoms_html = "".join([f'<li><div class="dot-amber"></div><span>{s}</span></li>' for s in symptoms[:5]])
@@ -1235,52 +1221,49 @@ with col_right:
             for p in prevention[:5]
         ])
 
-        st.markdown(f"""
-        <div class="detail-cards-grid">
-            <div class="symptoms-card">
-                <div class="detail-card-head">
-                    <span style="font-size: 1.1rem;">⚠️</span>
-                    <h5 class="symptoms-title">Symptoms</h5>
-                </div>
-                <ul class="detail-list">
-                    {symptoms_html}
-                </ul>
-            </div>
-            <div class="prevention-card">
-                <div class="detail-card-head">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                    <h5 class="prevention-title">Prevention & Care</h5>
-                </div>
-                <ul class="detail-list">
-                    {prevention_html}
-                </ul>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        details_html = (
+            f'<div class="detail-cards-grid">'
+            f'<div class="symptoms-card">'
+            f'<div class="detail-card-head">'
+            f'<span style="font-size: 1.1rem;">⚠️</span>'
+            f'<h5 class="symptoms-title">Symptoms</h5>'
+            f'</div>'
+            f'<ul class="detail-list">{symptoms_html}</ul>'
+            f'</div>'
+            f'<div class="prevention-card">'
+            f'<div class="detail-card-head">'
+            f'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>'
+            f'<h5 class="prevention-title">Prevention & Care</h5>'
+            f'</div>'
+            f'<ul class="detail-list">{prevention_html}</ul>'
+            f'</div>'
+            f'</div>'
+        )
+        st.markdown(details_html, unsafe_allow_html=True)
 
         # Bottom Section: Similar Cases & Learning Resource
         cases_html = "".join([f'<img class="case-thumb" src="{uri}" alt="Case">' for uri in case_uris if uri])
 
-        st.markdown(f"""
-        <div class="bottom-result-grid">
-            <div class="cases-card">
-                <div class="cases-title">Similar Cases</div>
-                <div class="cases-gallery">
-                    {cases_html}
-                </div>
-            </div>
-            <a class="resource-card" href="https://en.wikipedia.org/wiki/{disease_name.replace(' ', '_')}" target="_blank">
-                <div class="resource-left">
-                    <div class="resource-icon">📖</div>
-                    <div>
-                        <div class="resource-title">Learning Resource</div>
-                        <div class="resource-sub">Learn more about {disease_name}, its biology and management.</div>
-                    </div>
-                </div>
-                <div class="resource-arrow">→</div>
-            </a>
-        </div>
-        """, unsafe_allow_html=True)
+        wiki_url = f"https://en.wikipedia.org/wiki/{disease_name.replace(' ', '_')}"
+        bottom_html = (
+            f'<div class="bottom-result-grid">'
+            f'<div class="cases-card">'
+            f'<div class="cases-title">Similar Cases</div>'
+            f'<div class="cases-gallery">{cases_html}</div>'
+            f'</div>'
+            f'<a class="resource-card" href="{wiki_url}" target="_blank">'
+            f'<div class="resource-left">'
+            f'<div class="resource-icon">📖</div>'
+            f'<div>'
+            f'<div class="resource-title">Learning Resource</div>'
+            f'<div class="resource-sub">Learn more about {disease_name}, its biology and management.</div>'
+            f'</div>'
+            f'</div>'
+            f'<div class="resource-arrow">→</div>'
+            f'</a>'
+            f'</div>'
+        )
+        st.markdown(bottom_html, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
 # Project Showcase Footer Credit
